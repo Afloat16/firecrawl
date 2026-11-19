@@ -1,0 +1,36 @@
+name: Measure Markdown request decoding allocation
+on:
+  push:
+    branches: [validation/markdown-request-decoding-probe-20261119]
+permissions:
+  contents: read
+jobs:
+  investigate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GOMAXPROCS: "2"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          path: harness
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: firecrawl/firecrawl
+          ref: dc37f52f9670be4ef3077f97f31096b2d0657205
+          persist-credentials: false
+          path: source
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        with:
+          go-version: 1.26.11
+          cache-dependency-path: source/apps/go-html-to-md-service/go.sum
+      - name: Compare allocation and decoding time
+        working-directory: source/apps/go-html-to-md-service
+        run: |
+          test "$(git rev-parse HEAD)" = dc37f52f9670be4ef3077f97f31096b2d0657205
+          cp "$GITHUB_WORKSPACE/harness/validation/request_decoding_probe_test.go" .
+          gofmt -w request_decoding_probe_test.go
+          go version
+          go test -run '^$' -bench '^BenchmarkRequestBodyDecodingProbe$' -benchmem -benchtime=500ms -count=3 .
+          git diff --exit-code
