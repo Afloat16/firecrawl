@@ -1,0 +1,95 @@
+name: Validate compact Markdown JSON responses
+on:
+  push:
+    branches: [validation/markdown-json-wire-20261119]
+permissions:
+  contents: read
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        go: [1.25.x, 1.26.11]
+    defaults:
+      run:
+        working-directory: apps/go-html-to-md-service
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: Afloat16/firecrawl
+          ref: 564b6baf91781e7c1119c9728a327e6a30a35069
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        with:
+          go-version: ${{ matrix.go }}
+          cache-dependency-path: apps/go-html-to-md-service/go.sum
+      - name: Verify exact source and formatting
+        run: |
+          test "$(git rev-parse HEAD)" = 564b6baf91781e7c1119c9728a327e6a30a35069
+          test -z "$(gofmt -l handler.go handler_json_wire_test.go)"
+          go version
+          go mod verify
+      - name: Test the complete service with race detection
+        run: go test -race -count=1 -v ./...
+      - name: Vet and build the service
+        run: |
+          go vet ./...
+          go build -o "$RUNNER_TEMP/html-to-markdown-service" .
+          git diff --exit-code
+  comparison:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOMAXPROCS: "2"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          path: harness
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: Afloat16/firecrawl
+          ref: 564b6baf91781e7c1119c9728a327e6a30a35069
+          persist-credentials: false
+          fetch-depth: 3
+          path: source
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        with:
+          go-version: 1.26.11
+          cache-dependency-path: source/apps/go-html-to-md-service/go.sum
+      - name: Compile both implementations with identical benchmark fixtures
+        working-directory: source/apps/go-html-to-md-service
+        run: |
+          test "$(git rev-parse HEAD)" = 564b6baf91781e7c1119c9728a327e6a30a35069
+          go version
+          lscpu
+          go test -c -o "$RUNNER_TEMP/markdown-wire-fixed.test" .
+          git show dc37f52f9670be4ef3077f97f31096b2d0657205:apps/go-html-to-md-service/handler.go > handler.go
+          go test -c -o "$RUNNER_TEMP/markdown-wire-baseline.test" .
+          git show HEAD:apps/go-html-to-md-service/handler.go > handler.go
+          git diff --exit-code
+      - name: Compare five alternating rounds of complete handler requests
+        working-directory: source/apps/go-html-to-md-service
+        run: |
+          for round in 1 2 3 4 5; do
+            if (( round % 2 )); then
+              variants=(baseline fixed)
+            else
+              variants=(fixed baseline)
+            fi
+            for variant in "${variants[@]}"; do
+              "$RUNNER_TEMP/markdown-wire-$variant.test" -test.run='^$' -test.bench='^BenchmarkConvertHTMLJSON$' -test.benchmem -test.benchtime=500ms -test.count=1 | tee "bench-$variant-$round.log"
+            done
+          done
+          python3 "$GITHUB_WORKSPACE/harness/validation/markdown_json_summary.py"
+          git diff --exit-code
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: markdown-json-wire-comparison
+          path: |
+            source/apps/go-html-to-md-service/bench-*.log
+            source/apps/go-html-to-md-service/markdown-json-summary.json
+          retention-days: 14
