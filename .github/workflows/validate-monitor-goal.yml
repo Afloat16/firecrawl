@@ -1,0 +1,91 @@
+name: Validate monitor goal updates
+on:
+  push:
+    branches:
+      - qa/python-monitor-null-goal-20261120
+permissions:
+  contents: read
+jobs:
+  validate:
+    if: github.repository == 'Afloat16/firecrawl'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.8", "3.12"]
+    steps:
+      - name: Check out exact candidate source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          repository: Afloat16/firecrawl
+          ref: e25713b7e8eb999db77f90d556c917733eef0ebd
+          path: candidate
+          persist-credentials: false
+      - name: Check out exact upstream baseline
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          repository: firecrawl/firecrawl
+          ref: a38c6812f22ec1c97c97fcad431d8bcc728e3e89
+          path: baseline
+          persist-credentials: false
+      - name: Verify source identities
+        run: |
+          test "$(git -C candidate rev-parse HEAD)" = e25713b7e8eb999db77f90d556c917733eef0ebd
+          test "$(git -C baseline rev-parse HEAD)" = a38c6812f22ec1c97c97fcad431d8bcc728e3e89
+          git -C candidate show -s --format='%H %an <%ae>'
+          git -C baseline show -s --format='%H'
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install SDK and test dependencies
+        run: |
+          python -m pip install --no-cache-dir -r candidate/apps/python-sdk/requirements.txt
+          python -m pip install --no-cache-dir --no-deps -e candidate/apps/python-sdk
+      - name: Prove baseline has four null-goal regressions
+        working-directory: baseline/apps/python-sdk
+        shell: bash
+        run: |
+          cp ../../../candidate/apps/python-sdk/firecrawl/__tests__/unit/v2/methods/test_monitor_goal_update.py firecrawl/__tests__/unit/v2/methods/
+          python - <<'PY'
+          import pathlib
+          import firecrawl
+          pathlib.Path(firecrawl.__file__).resolve().relative_to(pathlib.Path.cwd())
+          print("Baseline imported from", firecrawl.__file__)
+          PY
+          set +e
+          python -m pytest firecrawl/__tests__/unit/v2/methods/test_monitor_goal_update.py -q --tb=short --junitxml="$RUNNER_TEMP/baseline.xml"
+          status=$?
+          set -e
+          test "$status" -eq 1
+          python - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+          root = ET.parse(os.path.join(os.environ["RUNNER_TEMP"], "baseline.xml")).getroot()
+          cases = root.findall(".//testcase")
+          expected = {
+              "test_public_update_monitor_goal_over_http[clear-sync]",
+              "test_public_update_monitor_goal_over_http[clear-async]",
+              "test_update_model_preserves_explicit_goal_only[explicit-null-_prepare_payload0]",
+              "test_update_model_preserves_explicit_goal_only[explicit-null-_prepare_payload1]",
+          }
+          failures = {case.attrib["name"] for case in cases if case.find("failure") is not None}
+          assert len(cases) == 16, len(cases)
+          assert failures == expected, failures
+          assert not root.findall(".//error")
+          assert not root.findall(".//skipped")
+          print("Verified four expected failures and twelve passing controls")
+          PY
+      - name: Check candidate null, omitted, string, and create semantics
+        working-directory: candidate/apps/python-sdk
+        run: |
+          python - <<'PY'
+          import pathlib
+          import firecrawl
+          pathlib.Path(firecrawl.__file__).resolve().relative_to(pathlib.Path.cwd())
+          print("Candidate imported from", firecrawl.__file__)
+          PY
+          python -m pytest firecrawl/__tests__/unit/v2/methods/test_monitor_goal_update.py -q --tb=short
+      - name: Run complete SDK unit suite
+        working-directory: candidate/apps/python-sdk
+        run: python -m pytest firecrawl/__tests__/unit -q --tb=short
