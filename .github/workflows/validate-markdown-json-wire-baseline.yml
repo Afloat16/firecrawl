@@ -1,0 +1,60 @@
+name: Reproduce Markdown JSON response overhead
+on:
+  push:
+    branches: [validation/markdown-json-wire-baseline-20261119]
+permissions:
+  contents: read
+jobs:
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/go-html-to-md-service
+    env:
+      GOMAXPROCS: "2"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: Afloat16/firecrawl
+          ref: cd9e8a1f94b15e59c86a54022947d280cdd649ba
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        with:
+          go-version: 1.26.11
+          cache-dependency-path: apps/go-html-to-md-service/go.sum
+      - name: Check source and test formatting
+        run: |
+          test "$(git rev-parse HEAD)" = cd9e8a1f94b15e59c86a54022947d280cdd649ba
+          test -z "$(gofmt -l handler_json_wire_test.go)"
+          go version
+          go mod verify
+      - name: Reproduce three wire-size regressions through real HTTP
+        run: |
+          set +e
+          go test -count=1 -run '^TestConvertHTMLJSONWire$' -v . > baseline-regression.log 2>&1
+          status=$?
+          set -e
+          cat baseline-regression.log
+          test "$status" = 1
+          python3 - <<'PY'
+          import pathlib, re
+          text = pathlib.Path("baseline-regression.log").read_text()
+          failed = re.findall(r"--- FAIL: TestConvertHTMLJSONWire/([^ ]+) ", text)
+          passed = re.findall(r"--- PASS: TestConvertHTMLJSONWire/([^ ]+) ", text)
+          assert sorted(failed) == ["ampersand", "code", "query_link"], failed
+          assert sorted(passed) == ["json_controls", "plain", "unicode"], passed
+          assert "JSON round trip changed" not in text
+          assert "unexpected HTTP response" not in text
+          print("Confirmed: three wire-size regressions; all six HTTP/JSON round trips unchanged.")
+          PY
+      - name: Keep existing service behavior green
+        run: go test -count=1 -v -run '^Test(Health|Index|ConvertHTML_|Converter_)' ./...
+      - name: Check tracked source remained unchanged
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: markdown-json-wire-baseline
+          path: apps/go-html-to-md-service/baseline-regression.log
+          retention-days: 14
