@@ -1,0 +1,162 @@
+[
+  {
+    "variant": "base",
+    "sizeMiB": 8,
+    "run": 0,
+    "elapsedMs": 66.29899799999998,
+    "delayMs": 66.34886400000005,
+    "settled": true
+  },
+  {
+    "variant": "patch",
+    "sizeMiB": 8,
+    "run": 0,
+    "elapsedMs": 23.330705999999964,
+    "delayMs": 0.3463219999998728,
+    "settled": false
+  },
+  {
+    "variant": "patch",
+    "sizeMiB": 8,
+    "run": 1,
+    "elapsedMs": 49.944618999999875,
+    "delayMs": 0.3901189999999133,
+    "settled": false
+  },
+  {
+    "variant": "base",
+    "sizeMiB": 8,
+    "run": 1,
+    "elapsedMs": 69.59485499999982,
+    "delayMs": 72.40596499999992,
+    "settled": true
+  },
+  {
+    "variant": "base",
+    "sizeMiB": 8,
+    "run": 2,
+    "elapsedMs": 5.591093000000001,
+    "delayMs": 5.637633000000051,
+    "settled": true
+  },
+  {
+    "variant": "patch",
+    "sizeMiB": 8,
+    "run": 2,
+    "elapsedMs": 21.654737999999952,
+    "delayMs": 0.3519699999999375,
+    "settled": false
+  },
+  {
+    "variant": "patch",
+    "sizeMiB": 8,
+    "run": 3,
+    "elapsedMs": 45.937981000000036,
+    "delayMs": 0.35677800000007664,
+    "settled": false
+  },
+  {
+    "variant": "base",
+    "sizeMiB": 8,
+    "run": 3,
+    "elapsedMs": 27.143577999999934,
+    "delayMs": 27.185611000000108,
+    "settled": true
+  },
+  {
+    "variant": "base",
+    "sizeMiB": 8,
+    "run": 4,
+    "elapsedMs": 25.40886999999998,
+    "delayMs": 25.457352999999785,
+    "settled": true
+  },
+  {
+    "variant": "patch",
+    "sizeMiB": 8,
+    "run": 4,
+    "elapsedMs": 73.43623400000001,
+    "delayMs": 0.37280299999997624,
+    "settled": false
+  },
+  {
+    "variant": "base",
+    "sizeMiB": 32,
+    "run": 0,
+    "elapsedMs": 130.96494600000005,
+    "delayMs": 131.00848200000019,
+    "settled": true
+  },
+  {
+    "variant": "patch",
+    "sizeMiB": 32,
+    "run": 0,
+    "elapsedMs": 146.3554049999998,
+    "delayMs": 1.0940099999997983,
+    "settled": false
+  },
+  {
+    "variant": "patch",
+    "sizeMiB": 32,
+    "run": 1,
+    "elapsedMs": 195.37536599999976,
+    "delayMs": 0.3632279999997081,
+    "settled": false
+  },
+  {
+    "variant": "base",
+    "sizeMiB": 32,
+    "run": 1,
+    "elapsedMs": 76.65478699999994,
+    "delayMs": 76.7393949999996,
+    "settled": true
+  },
+  {
+    "variant": "base",
+    "sizeMiB": 32,
+    "run": 2,
+    "elapsedMs": 72.45746799999961,
+    "delayMs": 75.81934799999999,
+    "settled": true
+  },
+  {
+    "variant": "patch",
+    "sizeMiB": 32,
+    "run": 2,
+    "elapsedMs": 160.6742220000001,
+    "delayMs": 0.35739900000044145,
+    "settled": false
+  },
+  {
+    "variant": "patch",
+    "sizeMiB": 32,
+    "run": 3,
+    "elapsedMs": 122.26402300000018,
+    "delayMs": 4.436641000000236,
+    "settled": false
+  },
+  {
+    "variant": "base",
+    "sizeMiB": 32,
+    "run": 3,
+    "elapsedMs": 52.738852999999835,
+    "delayMs": 52.85786300000018,
+    "settled": true
+  },
+  {
+    "variant": "base",
+    "sizeMiB": 32,
+    "run": 4,
+    "elapsedMs": 52.09018399999968,
+    "delayMs": 52.18722099999968,
+    "settled": true
+  },
+  {
+    "variant": "patch",
+    "sizeMiB": 32,
+    "run": 4,
+    "elapsedMs": 103.11771700000008,
+    "delayMs": 3.3044239999999263,
+    "settled": false
+  }
+]
